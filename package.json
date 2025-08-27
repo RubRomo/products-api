@@ -11,10 +11,13 @@
   "description": "",
   "type": "module",
   "dependencies": {
+    "cors": "2.8.5",
+    "dotenv": "^17.2.1",
     "express": "5.1.0",
     "mysql2": "3.14.3",
+    "openai": "^5.15.0",
     "standard": "17.1.2",
-    "zod": "4.0.17"
+    "zod": "^3.25.76"
   },
   "eslintConfig": {
     "extends": "standard"

@@ -1,4 +1,7 @@
 import mysql from 'mysql2/promise'
+import dotenv from 'dotenv'
+import OpenAI from 'openai'
+dotenv.config()
 
 // Create the connection to database
 const connection = await mysql.createConnection({
@@ -71,5 +74,65 @@ export class ProductModel {
       'DELETE FROM product WHERE id = ?', [id]
     )
     return true
+  }
+
+  static async getAIResponse ({ prompt }) {
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+    })
+
+    // 1. Define a list of callable tools for the model
+    const tools = [
+      {
+        type: 'function',
+        name: 'getProducts',
+        description: 'Get list of available products.'
+      }
+    ]
+
+    // Create a running input list we will add to over time
+    let input = [
+      { role: 'user', content: 'What are the available products.' }
+    ]
+
+    const agentResponse = await openai.responses.create({
+      model: 'gpt-4o-mini',
+      tools,
+      input
+    })
+
+    input = input.concat(agentResponse.output)
+
+    await Promise.all(
+      agentResponse.output.map(async (item) => {
+        if (item.type === 'function_call') {
+          const functionResult = await ProductModel.callFunction(item.name, JSON.parse(item.arguments))
+          input.push({
+            type: 'function_call_output',
+            call_id: item.call_id,
+            output: JSON.stringify(functionResult)
+          })
+        }
+      })
+    )
+
+    console.log(input)
+
+    const response = await openai.responses.create({
+      model: 'gpt-4o-mini',
+      instructions: 'Make simple friendly response with the function_call_output results provided.',
+      tools,
+      input
+    })
+
+    console.log(response)
+    return response.output_text
+  }
+
+  static async callFunction (name, args) {
+    if (name === 'getProducts') {
+      return ProductModel.getProducts()
+    }
+    return 'Not found'
   }
 }
