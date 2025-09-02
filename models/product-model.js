@@ -125,7 +125,6 @@ export class ProductModel {
       input
     })
 
-    console.log(response)
     return response.output_text
   }
 

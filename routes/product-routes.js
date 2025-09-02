@@ -9,4 +9,4 @@ productRouter.patch('/:id', ProductController.updateProduct)
 productRouter.post('/', ProductController.createProduct)
 productRouter.delete('/:id', ProductController.deleteProduct)
 
-productRouter.get('/askai', ProductController.getAIResponse)
+productRouter.post('/askai', ProductController.getAIResponse)
