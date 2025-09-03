@@ -87,12 +87,18 @@ export class ProductModel {
         type: 'function',
         name: 'getProducts',
         description: 'Get list of available products.'
+      },
+      {
+        type: 'function',
+        name: 'updateProduct',
+        description: 'This function doesnt exist yet.'
       }
     ]
 
     // Create a running input list we will add to over time
     let input = [
-      { role: 'user', content: 'What are the available products.' }
+      { role: 'user', content: prompt },
+      { role: 'system', content: 'You are a helpful assistant, only has the get products tool available if user ask for performing other action let him know youre unable' }
     ]
 
     const agentResponse = await openai.responses.create({
@@ -102,6 +108,8 @@ export class ProductModel {
     })
 
     input = input.concat(agentResponse.output)
+
+    console.log(agentResponse.output)
 
     await Promise.all(
       agentResponse.output.map(async (item) => {
@@ -113,14 +121,19 @@ export class ProductModel {
             output: JSON.stringify(functionResult)
           })
         }
+
+        if (item.type === 'message') {
+          input.push({
+            role: 'assistant',
+            content: JSON.stringify(item.content[0].text)
+          })
+        }
       })
     )
 
-    console.log(input)
-
     const response = await openai.responses.create({
       model: 'gpt-4o-mini',
-      instructions: 'Make simple friendly response with the function_call_output results provided.',
+      instructions: 'Make a simple, friendly response using the function_call_output results if available, or use the assistant message text.',
       tools,
       input
     })
