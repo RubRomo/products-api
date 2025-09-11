@@ -92,7 +92,7 @@ export class ProductModel {
           properties: {
             id: {
               type: 'integer',
-              description: 'Get details of a single product by ID. Use ONLY when the user specifies a product ID.'
+              description: 'Product by ID.'
             }
           }
         },
@@ -101,7 +101,32 @@ export class ProductModel {
       {
         type: 'function',
         name: 'getProducts',
-        description: 'Get the full list of available products. Use ONLY when the user does NOT provide a specific product ID'
+        description: 'Get the full list of available products.'
+      },
+      {
+        type: 'function',
+        name: 'updateProduct',
+        description: 'Update an existing product by ID providing the fields to update.',
+        parameters: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'integer',
+              description: 'Product by ID.'
+            },
+            input: {
+              type: 'object',
+              description: 'Product details to update',
+              properties: {
+                name: { type: 'string', description: 'Product name' },
+                price: { type: 'number', description: 'Product price' },
+                stock: { type: 'number', description: 'Product stock' },
+                archived: { type: 'number', description: '1 if product is archived, 0 if not' }
+              }
+            }
+          },
+          required: ['id']
+        }
       }
     ]
 
@@ -112,11 +137,14 @@ export class ProductModel {
         role: 'system', content: `
         You are a helpful assistant.
 
-        You have two tools:
-        1. getProductById: Use ONLY if the user explicitly provides a product ID (example: "product id 12", "show me item 4").
+        You have three tools:
+        1. getProductById: Use ONLY if the user explicitly provides a product ID and asks to view product details (example: "product id 12", "show me item 4").
         2. getProducts: Use ONLY if the user requests the list of all products without specifying an ID.
+        3. updateProduct: Use ONLY if the user wants to update a product by ID and provides the fields to update (example: "update product id 5 to have price 20 and stock 50 and must be active").
 
-        If the user provides an ID, you must NEVER call getProducts. Always call getProductById with that ID.
+        If the user says they want to update a product but does not specify what to update, DO NOT call getProductById. Instead, ask the user the fields required to update (name, price, stock, archived).
+
+        If the user provides an ID and is asking for getting product data, you must NEVER call getProducts. Always call getProductById with that ID, it only applies when user ask for getting product details.
         Here are the details for product id {id}:
 
         - Name: {name}
@@ -126,6 +154,8 @@ export class ProductModel {
 
         Do not use bold or markdown other than the bullet list. 
         Always include 'Available: Yes or No' if archived is true or false.
+
+        If user provides an ID and wants to update a product, use updateProduct passing the fields to update.
         `
       }
     ]
@@ -182,6 +212,9 @@ export class ProductModel {
     }
     if (name === 'getProductById') {
       return ProductModel.getProductById(args)
+    }
+    if (name === 'updateProduct') {
+      return ProductModel.updateProduct(args)
     }
     return 'Function not found'
   }
