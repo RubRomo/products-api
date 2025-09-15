@@ -39,9 +39,9 @@ export class ProductModel {
       SET name = ?
       , price = ?
       , stock = ?
-      ,archived = ?
+      ,active = ?
       WHERE id = ?
-      `, [input.name, input.price, input.stock, input.archived, id]
+      `, [input.name, input.price, input.stock, input.active, id]
     )
 
     return { id, ...input }
@@ -121,7 +121,7 @@ export class ProductModel {
                 name: { type: 'string', description: 'Product name' },
                 price: { type: 'number', description: 'Product price' },
                 stock: { type: 'number', description: 'Product stock' },
-                archived: { type: 'number', description: '1 if product is archived, 0 if not' }
+                active: { type: 'boolean', description: 'Product status' }
               }
             }
           },
@@ -132,41 +132,50 @@ export class ProductModel {
 
     // Create a running input list we will add to over time
     let input = [
-      { role: 'user', content: prompt },
-      {
-        role: 'system', content: `
-        You are a helpful assistant.
-
-        You have three tools:
-        1. getProductById: Use ONLY if the user explicitly provides a product ID and asks to view product details (example: "product id 12", "show me item 4").
-        2. getProducts: Use ONLY if the user requests the list of all products without specifying an ID.
-        3. updateProduct: Use ONLY if the user wants to update a product by ID and provides the fields to update (example: "update product id 5 to have price 20 and stock 50 and must be active").
-
-        If the user says they want to update a product but does not specify what to update, DO NOT call getProductById. Instead, ask the user the fields required to update (name, price, stock, archived).
-
-        If the user provides an ID and is asking for getting product data, you must NEVER call getProducts. Always call getProductById with that ID, it only applies when user ask for getting product details.
-        Here are the details for product id {id}:
-
-        - Name: {name}
-        - Price: {price}
-        - Stock: {stock}
-        - Available: {Archived or Not Archived}
-
-        Do not use bold or markdown other than the bullet list. 
-        Always include 'Available: Yes or No' if archived is true or false.
-
-        If user provides an ID and wants to update a product, use updateProduct passing the fields to update.
-        `
-      }
+      { role: 'user', content: prompt }
     ]
 
     const agentResponse = await openai.responses.create({
       model: 'gpt-4o-mini',
+      temperature: 0,
+      instructions: `
+        You are a helpful assistant.
+
+        You have three tools:
+
+        1. getProductById  
+          - Use ONLY if the user explicitly provides a product ID and asks to view product details.  
+          - Example: "product id 12", "show me item 4".  
+          - If the user provides an ID and is asking for product details, NEVER call getProducts. Always call getProductById with that ID.  
+
+        2. getProducts  
+          - Use ONLY if the user requests the list of all products without specifying an ID.  
+          - If the user says they want to update a product but does not specify what to update, DO NOT call getProductById.  
+          - Instead, ask the user for the mandatory fields: (id, name, price, stock, active).  
+
+        3. updateProduct  
+          - Use ONLY if the user explicitly asks to update a product AND provides ALL mandatory fields: (id, name, price, stock, active).  
+          - If ANY mandatory field is missing, DO NOT invent or assume values.  
+          
+
+        GLOBAL RULES:  
+        - NEVER fabricate or guess missing values (especially product name).  
+        - Only include fields explicitly provided by the user.  
+        - Ask **only for the missing fields** (never list the ones already provided).
+        - If all fields are present, call updateProduct with exactly those values.
+        - Always respond in a friendly and conversational manner.
+      `,
       tools,
       input
     })
 
     input = input.concat(agentResponse.output)
+
+    const assistantMsg = agentResponse.output.find(item => item.type === 'message')
+    if (assistantMsg) {
+      console.log('is assitant message')
+      return assistantMsg.content[0].text
+    }
 
     /* console.log(agentResponse.output) */
 
@@ -183,7 +192,7 @@ export class ProductModel {
         }
 
         if (item.type === 'message') {
-          console.log('message')
+          console.log('message test')
           input.push({
             role: 'assistant',
             content: item.content[0].text
@@ -196,11 +205,12 @@ export class ProductModel {
 
     const response = await openai.responses.create({
       model: 'gpt-4o-mini',
-      instructions: 'Make a simple, friendly response using the function_call_output results if available, or use the assistant message text.',
+      instructions: `
+        Make a simple, friendly response using the function_call_output results.
+        Do not use bold or markdown other than the bullet list. 
+      `,
       input
     })
-
-    /* console.log(response) */
 
     return response.output_text
   }
