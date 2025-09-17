@@ -57,8 +57,8 @@ export class ProductModel {
     }
 
     const [productInsert] = await connection.query(
-      'INSERT INTO Product (name, price, stock, archived) VALUES (?,?,?,?)',
-      [input.name, input.price, input.stock, input.archived]
+      'INSERT INTO Product (name, price, stock, active) VALUES (?,?,?,?)',
+      [input.name, input.price, input.stock, input.active]
     )
     return { id: productInsert.insertId, ...input }
   }
@@ -127,6 +127,42 @@ export class ProductModel {
           },
           required: ['id']
         }
+      },
+      {
+        type: 'function',
+        name: 'createProduct',
+        description: 'Insert a new product',
+        parameters: {
+          type: 'object',
+          properties: {
+            input: {
+              type: 'object',
+              description: 'Product details to insert',
+              properties: {
+                name: { type: 'string', description: 'Product name' },
+                price: { type: 'number', description: 'Product price' },
+                stock: { type: 'number', description: 'Product stock' },
+                active: { type: 'boolean', description: 'Product status' }
+              },
+              required: ['name', 'price', 'stock', 'active']
+            }
+          }
+        }
+      },
+      {
+        type: 'function',
+        name: 'deleteProduct',
+        description: 'Delete product by ID',
+        parameters: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'integer',
+              description: 'Product ID'
+            }
+          }
+        },
+        required: ['id']
       }
     ]
 
@@ -137,6 +173,7 @@ export class ProductModel {
 
     const agentResponse = await openai.responses.create({
       model: 'gpt-4o-mini',
+      /* model: 'gpt-3.5-turbo', */
       temperature: 0,
       instructions: `
         You are a helpful assistant.
@@ -156,13 +193,14 @@ export class ProductModel {
         3. updateProduct  
           - Use ONLY if the user explicitly asks to update a product AND provides ALL mandatory fields: (id, name, price, stock, active).  
           - If ANY mandatory field is missing, DO NOT invent or assume values.  
-          
+
 
         GLOBAL RULES:  
         - NEVER fabricate or guess missing values (especially product name).  
         - Only include fields explicitly provided by the user.  
         - Ask **only for the missing fields** (never list the ones already provided).
-        - If all fields are present, call updateProduct with exactly those values.
+        - Do not ask for confimration, just do it.
+        - When user provides the status convert it by yourself to boolean (true/false).
         - Always respond in a friendly and conversational manner.
       `,
       tools,
@@ -177,29 +215,27 @@ export class ProductModel {
       return assistantMsg.content[0].text
     }
 
-    /* console.log(agentResponse.output) */
-
-    await Promise.all(
+    /*
+      Promise.all still runs all tasks in parallel.
+      The .map order is preserved in the resolved newItems array.
+      Applying this solution when multiple function calls are made at once.
+    */
+    const orderedItems = await Promise.all(
       agentResponse.output.map(async (item) => {
         if (item.type === 'function_call') {
-          console.log('funcitoncall')
+          console.log('functioncall')
           const functionResult = await ProductModel.callFunction(item.name, JSON.parse(item.arguments))
-          input.push({
+          return {
             type: 'function_call_output',
             call_id: item.call_id,
             output: JSON.stringify(functionResult)
-          })
-        }
-
-        if (item.type === 'message') {
-          console.log('message test')
-          input.push({
-            role: 'assistant',
-            content: item.content[0].text
-          })
+          }
         }
       })
     )
+
+    /* keeping original funciton calling output order */
+    input.push(...orderedItems.filter(Boolean))
 
     console.log(input)
 
@@ -207,7 +243,11 @@ export class ProductModel {
       model: 'gpt-4o-mini',
       instructions: `
         Make a simple, friendly response using the function_call_output results.
-        Do not use bold or markdown other than the bullet list. 
+        Do not use bold or markdown other than the bullet list.
+        consider the below scenarios for your response:
+        1. If updateProduct function was called but result is an empty array, say "Product id {id} does not exist, please review it and try again."
+        2. If createProduct funciton was called but result is an empty array, say "Product name: {name} already exists, please review it and try again."
+        3. Match correctly the function_call vs function_call_output by the call_id and provide the result basing on his output.
       `,
       input
     })
@@ -226,6 +266,43 @@ export class ProductModel {
     if (name === 'updateProduct') {
       return ProductModel.updateProduct(args)
     }
+    if (name === 'createProduct') {
+      return ProductModel.createProduct(args)
+    }
+    if (name === 'deleteProduct') {
+      return ProductModel.deleteProduct(args)
+    }
     return 'Function not found'
+  }
+
+  static async getChatCompletion () {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: 'Hello!' }]
+      })
+    })
+
+    console.log('Rate limit headers:')
+    console.log('Requests limit:', response.headers.get('x-ratelimit-limit-requests'))
+    console.log('Requests remaining:', response.headers.get('x-ratelimit-remaining-requests'))
+    console.log('Tokens limit:', response.headers.get('x-ratelimit-limit-tokens'))
+    console.log('Tokens remaining:', response.headers.get('x-ratelimit-remaining-tokens'))
+    console.log('Reset requests:', response.headers.get('x-ratelimit-reset-requests'))
+    console.log('Reset tokens:', response.headers.get('x-ratelimit-reset-tokens'))
+
+    return {
+      requestlimit: response.headers.get('x-ratelimit-limit-requests'),
+      requestsremaining: response.headers.get('x-ratelimit-remaining-requests'),
+      tokenslimit: response.headers.get('x-ratelimit-limit-tokens'),
+      tokensremaining: response.headers.get('x-ratelimit-remaining-tokens'),
+      resetrequests: response.headers.get('x-ratelimit-reset-requests'),
+      resettokens: response.headers.get('x-ratelimit-reset-tokens')
+    }
   }
 }

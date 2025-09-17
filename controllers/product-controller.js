@@ -79,4 +79,13 @@ export class ProductController {
       res.status(500).json({ error: e.message.toString() })
     }
   }
+
+  static async getChatCompletion (req, res) {
+    try {
+      const result = await ProductModel.getChatCompletion()
+      res.json(result)
+    } catch (e) {
+      res.status(500).json({ error: e.message.toString() })
+    }
+  }
 }

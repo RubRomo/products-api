@@ -10,3 +10,4 @@ productRouter.post('/', ProductController.createProduct)
 productRouter.delete('/:id', ProductController.deleteProduct)
 
 productRouter.post('/askai', ProductController.getAIResponse)
+productRouter.post('/aicompletion', ProductController.getChatCompletion)
