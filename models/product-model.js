@@ -26,12 +26,21 @@ export class ProductModel {
   }
 
   static async updateProduct ({ id, input }) {
-    const [result] = await connection.query(
+    // Desctructuring for pulling only rows
+    const [resultById] = await connection.query(
       'SELECT * FROM product WHERE id = ?', [id]
     )
 
-    if (result.length === 0) {
-      return result
+    if (resultById.length === 0) {
+      return 'ID doesnt exist'
+    }
+
+    const [resultByName] = await connection.query(
+      'SELECT * FROM product WHERE name = ?', [input.name]
+    )
+
+    if (resultByName.length) {
+      return 'Product name already exists'
     }
 
     await connection.query(
@@ -184,6 +193,7 @@ export class ProductModel {
           - Use ONLY if the user explicitly provides a product ID and asks to view product details.  
           - Example: "product id 12", "show me item 4".  
           - If the user provides an ID and is asking for product details, NEVER call getProducts. Always call getProductById with that ID.  
+          - Do NOT call getProductById if user is asking to update or delete a product.
 
         2. getProducts  
           - Use ONLY if the user requests the list of all products without specifying an ID.  
@@ -212,7 +222,7 @@ export class ProductModel {
     const assistantMsg = agentResponse.output.find(item => item.type === 'message')
     if (assistantMsg) {
       console.log('is assitant message')
-      return assistantMsg.content[0].text
+      return { data: assistantMsg.content[0].text, refresh: false }
     }
 
     /*
@@ -245,32 +255,37 @@ export class ProductModel {
         Make a simple, friendly response using the function_call_output results.
         Do not use bold or markdown other than the bullet list.
         consider the below scenarios for your response:
-        1. If updateProduct function was called but result is an empty array, say "Product id {id} does not exist, please review it and try again."
+        1. If updateProduct function was called but data has string that means update was not succesful, respond basing on it.
         2. If createProduct funciton was called but result is an empty array, say "Product name: {name} already exists, please review it and try again."
         3. Match correctly the function_call vs function_call_output by the call_id and provide the result basing on his output.
       `,
       input
     })
 
-    return response.output_text
+    const isRefresh = input.some(item => item.type === 'function_call_output' && item.output.includes('"refresh":true'))
+
+    return { data: response.output_text, refresh: isRefresh }
   }
 
   static async callFunction (name, args) {
     console.log(name)
+
     if (name === 'getProducts') {
-      return ProductModel.getProducts()
+      return { data: ProductModel.getProducts(), refresh: false }
     }
     if (name === 'getProductById') {
-      return ProductModel.getProductById(args)
+      return { data: ProductModel.getProductById(args), refresh: false }
     }
     if (name === 'updateProduct') {
-      return ProductModel.updateProduct(args)
+      const updateResult = await ProductModel.updateProduct(args)
+      return { data: updateResult, refresh: typeof updateResult === 'object' }
     }
     if (name === 'createProduct') {
-      return ProductModel.createProduct(args)
+      return { data: ProductModel.createProduct(args), refresh: true }
     }
     if (name === 'deleteProduct') {
-      return ProductModel.deleteProduct(args)
+      const isProductDeleted = await ProductModel.deleteProduct(args)
+      return { data: isProductDeleted, refresh: isProductDeleted }
     }
     return 'Function not found'
   }

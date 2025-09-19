@@ -74,7 +74,7 @@ export class ProductController {
     const { prompt } = req.body
     try {
       const aiResponse = await ProductModel.getAIResponse({ prompt })
-      res.json({ data: aiResponse })
+      res.json(aiResponse)
     } catch (e) {
       res.status(500).json({ error: e.message.toString() })
     }
