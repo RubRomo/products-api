@@ -62,13 +62,14 @@ export class ProductModel {
     )
 
     if (productResult.length !== 0) {
-      return []
+      return 'Product name already exists'
     }
 
     const [productInsert] = await connection.query(
       'INSERT INTO Product (name, price, stock, active) VALUES (?,?,?,?)',
       [input.name, input.price, input.stock, input.active]
     )
+
     return { id: productInsert.insertId, ...input }
   }
 
@@ -271,17 +272,18 @@ export class ProductModel {
     console.log(name)
 
     if (name === 'getProducts') {
-      return { data: ProductModel.getProducts(), refresh: false }
+      return { data: await ProductModel.getProducts(), refresh: false }
     }
     if (name === 'getProductById') {
-      return { data: ProductModel.getProductById(args), refresh: false }
+      return { data: await ProductModel.getProductById(args), refresh: false }
     }
     if (name === 'updateProduct') {
       const updateResult = await ProductModel.updateProduct(args)
       return { data: updateResult, refresh: typeof updateResult === 'object' }
     }
     if (name === 'createProduct') {
-      return { data: ProductModel.createProduct(args), refresh: true }
+      const createProductResult = await ProductModel.createProduct(args)
+      return { data: createProductResult, refresh: typeof createProductResult === 'object' }
     }
     if (name === 'deleteProduct') {
       const isProductDeleted = await ProductModel.deleteProduct(args)
