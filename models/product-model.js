@@ -86,7 +86,8 @@ export class ProductModel {
     return true
   }
 
-  static async getAIResponse ({ prompt }) {
+  static async getAIResponse ({ messages }) {
+    console.log(messages)
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY
     })
@@ -177,9 +178,7 @@ export class ProductModel {
     ]
 
     // Create a running input list we will add to over time
-    let input = [
-      { role: 'user', content: prompt }
-    ]
+    let input = messages
 
     const agentResponse = await openai.responses.create({
       model: 'gpt-4o-mini',
@@ -213,6 +212,7 @@ export class ProductModel {
         - Do not ask for confimration, just do it.
         - When user provides the status convert it by yourself to boolean (true/false).
         - Always respond in a friendly and conversational manner.
+        - Do not accept insults in spanish or english as input data, respond politely.
       `,
       tools,
       input
@@ -253,12 +253,12 @@ export class ProductModel {
     const response = await openai.responses.create({
       model: 'gpt-4o-mini',
       instructions: `
-        Make a simple, friendly response using the function_call_output results.
-        Do not use bold or markdown other than the bullet list.
-        consider the below scenarios for your response:
-        1. If updateProduct function was called but data has string that means update was not succesful, respond basing on it.
-        2. If createProduct funciton was called but result is an empty array, say "Product name: {name} already exists, please review it and try again."
-        3. Match correctly the function_call vs function_call_output by the call_id and provide the result basing on his output.
+        - Make a simple, friendly response using the function_call_output results.
+        - Return the message using emojis do not use bold or markdown other than the bullet list.
+        - Consider the below scenarios for your response:
+          1. If updateProduct function was called but data has string that means update was not succesful, respond basing on it.
+          2. If createProduct funciton was called but result is an empty array, say "Product name: {name} already exists, please review it and try again."
+          3. Match correctly the function_call vs function_call_output by the call_id and provide the result basing on his output.
       `,
       input
     })

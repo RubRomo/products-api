@@ -71,9 +71,9 @@ export class ProductController {
   }
 
   static async getAIResponse (req, res) {
-    const { prompt } = req.body
+    const { messages } = req.body
     try {
-      const aiResponse = await ProductModel.getAIResponse({ prompt })
+      const aiResponse = await ProductModel.getAIResponse({ messages })
       res.json(aiResponse)
     } catch (e) {
       res.status(500).json({ error: e.message.toString() })
