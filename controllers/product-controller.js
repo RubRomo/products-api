@@ -76,6 +76,10 @@ export class ProductController {
       const aiResponse = await ProductModel.getAIResponse({ messages })
       res.json(aiResponse)
     } catch (e) {
+      if (e.message.toString().includes('429 Rate limit reached')) {
+        res.status(429).json({ error: e.message.toString() })
+        return
+      }
       res.status(500).json({ error: e.message.toString() })
     }
   }
