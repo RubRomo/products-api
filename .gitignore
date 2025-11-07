@@ -18,6 +18,7 @@ Thumbs.db
 # Build output
 dist/
 build/
+.serverless/
 
 # Coverage reports
 coverage/

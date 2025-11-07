@@ -1,4 +1,5 @@
 import { ProductModel } from '../models/product-model.js'
+import { ProductAIModel } from '../models/product-ai.js'
 import { validateProduct } from '../schemas/product-schema.js'
 
 export class ProductController {
@@ -73,7 +74,7 @@ export class ProductController {
   static async getAIResponse (req, res) {
     const { messages } = req.body
     try {
-      const aiResponse = await ProductModel.getAIResponse({ messages })
+      const aiResponse = await ProductAIModel.getAIResponse({ messages })
       res.json(aiResponse)
     } catch (e) {
       if (e.message.toString().includes('429 Rate limit reached')) {
@@ -86,7 +87,7 @@ export class ProductController {
 
   static async getChatCompletion (req, res) {
     try {
-      const result = await ProductModel.getChatCompletion()
+      const result = await ProductAIModel.getChatCompletion()
       res.json(result)
     } catch (e) {
       res.status(500).json({ error: e.message.toString() })

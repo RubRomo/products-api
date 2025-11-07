@@ -3,21 +3,27 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node --watch ./local.js",
+    "deploy": "serverless deploy"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "type": "module",
+  "engines": { 
+    "node": ">=20.0.0" 
+  },
   "dependencies": {
     "cors": "2.8.5",
-    "dotenv": "^17.2.1",
+    "dotenv": "17.2.1",
     "express": "5.1.0",
     "mysql2": "3.14.3",
-    "openai": "^5.15.0",
+    "openai": "5.15.0",
+    "serverless-http": "3.0.0",
     "standard": "17.1.2",
-    "zod": "^3.25.76"
+    "zod": "3.25.76"
   },
   "eslintConfig": {
     "extends": "standard"
