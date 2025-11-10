@@ -67,7 +67,7 @@ export class ProductModel {
     }
 
     const [productInsert] = await connection.query(
-      'INSERT INTO Product (name, price, stock, active) VALUES (?,?,?,?)',
+      'INSERT INTO products (name, price, stock, active) VALUES (?,?,?,?)',
       [input.name, input.price, input.stock, input.active]
     )
 

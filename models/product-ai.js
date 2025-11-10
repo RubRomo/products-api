@@ -153,7 +153,7 @@ export class ProductAIModel {
       agentResponse.output.map(async (item) => {
         if (item.type === 'function_call') {
           console.log('functioncall')
-          const functionResult = await ProductModel.callFunction(item.name, JSON.parse(item.arguments))
+          const functionResult = await this.callFunction(item.name, JSON.parse(item.arguments))
           return {
             type: 'function_call_output',
             call_id: item.call_id,
@@ -163,7 +163,7 @@ export class ProductAIModel {
       })
     )
 
-    /* keeping original funciton calling output order */
+    /* keeping original function calling output order */
     input.push(...orderedItems.filter(Boolean))
 
     console.log(input)
