@@ -71,7 +71,7 @@ export class ProductAIModel {
                 name: { type: 'string', description: 'Product name' },
                 price: { type: 'number', description: 'Product price' },
                 stock: { type: 'number', description: 'Product stock' },
-                active: { type: 'boolean', description: 'Product status' }
+                active: { type: 'number', description: 'Product status' }
               },
               required: ['name', 'price', 'stock', 'active']
             }
@@ -96,7 +96,7 @@ export class ProductAIModel {
     ]
 
     // Create a running input list we will add to over time
-    let input = messages
+    const input = messages
 
     const agentResponse = await openai.responses.create({
       model: 'gpt-4o-mini',
@@ -123,26 +123,32 @@ export class ProductAIModel {
           - If ANY mandatory field is missing, DO NOT invent or assume values.  
 
 
-        GLOBAL RULES:  
+        GLOBAL RULES:
+        - Always respond in a friendly and conversational manner using emojis and making robot noises.
+        - Do not break lines abuse.
         - NEVER fabricate or guess missing values (especially product name).  
         - Only include fields explicitly provided by the user.  
-        - Ask **only for the missing fields** (never list the ones already provided).
+        - Ask **only for the missing fields** as list (never list the ones already provided).
         - Do not ask for confimration, just do it.
-        - When user provides the status convert it by yourself to boolean (true/false).
-        - Always respond in a friendly and conversational manner.
-        - Do not accept insults in spanish or english as input data, respond politely.
+        - When user provides the status convert it by yourself to boolean value DO NOT ASK for true/false or 1/0.
+        - Do not accept insults in spanish or english as input data, respond back politely.
       `,
       tools,
       input
     })
-
-    input = input.concat(agentResponse.output)
 
     const assistantMsg = agentResponse.output.find(item => item.type === 'message')
     if (assistantMsg) {
       console.log('is assitant message')
       return { data: assistantMsg.content[0].text, refresh: false }
     }
+
+    // At this point we just have function calls to process
+    const inputFunctionCalls = messages.slice(messages.length - 1, messages.length)
+    inputFunctionCalls.push(...agentResponse.output)
+    console.log('----- function calls -----')
+    console.log(inputFunctionCalls)
+    console.log('---- end function calls ----')
 
     /*
       Promise.all still runs all tasks in parallel.
@@ -163,10 +169,13 @@ export class ProductAIModel {
       })
     )
 
-    /* keeping original function calling output order */
-    input.push(...orderedItems.filter(Boolean))
+    inputFunctionCalls.push(...orderedItems.filter(Boolean))
 
-    console.log(input)
+    /* keeping original function calling output order */
+    /* input.push(...orderedItems.filter(Boolean)) */
+    console.log('----- function call outputs -----')
+    console.log(inputFunctionCalls)
+    console.log('---- end function call outputs ----')
 
     const response = await openai.responses.create({
       model: 'gpt-4o-mini',
@@ -178,10 +187,10 @@ export class ProductAIModel {
           2. If createProduct funciton was called but result is an empty array, say "Product name: {name} already exists, please review it and try again."
           3. Match correctly the function_call vs function_call_output by the call_id and provide the result basing on his output.
       `,
-      input
+      input: inputFunctionCalls
     })
 
-    const isRefresh = input.some(item => item.type === 'function_call_output' && item.output.includes('"refresh":true'))
+    const isRefresh = inputFunctionCalls.some(item => item.type === 'function_call_output' && item.output.includes('"refresh":true'))
 
     return { data: response.output_text, refresh: isRefresh }
   }

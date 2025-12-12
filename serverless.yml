@@ -7,6 +7,12 @@ provider:
   stage: prod
   environment:
     NODE_ENV: production
+    DB_HOST: ${ssm:/products-api/prod/DB_HOST}
+    DB_PORT: ${ssm:/products-api/prod/DB_PORT}
+    DB_NAME: ${ssm:/products-api/prod/DB_NAME}
+    DB_USER: ${ssm:/products-api/prod/DB_USER}
+    OPENAI_API_KEY: ''
+    DB_PASSWORD: ''
 
 functions:
   app:

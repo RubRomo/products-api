@@ -7,7 +7,7 @@ const productSchema = z.object({
   }).max(255),
   price: z.number().min(0),
   stock: z.number().min(0),
-  archived: z.number().min(0).max(1)
+  active: z.number().min(0).max(1)
 })
 
 export function validateProduct (object) {
