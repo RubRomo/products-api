@@ -1,5 +1,5 @@
-import { ProductModel } from '../models/product-model.js'
-import { ProductAIModel } from '../models/product-ai.js'
+import { ProductModel } from '../models/product.factory.js'
+import { ProductAIModel } from '../models/product.ai.js'
 import { validateProduct } from '../schemas/product-schema.js'
 
 export class ProductController {

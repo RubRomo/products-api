@@ -1,6 +1,6 @@
 import dotenv from 'dotenv'
 import OpenAI from 'openai'
-import { ProductModel } from './product-model.js'
+import { ProductModel } from './product.factory.js'
 dotenv.config()
 
 export class ProductAIModel {
@@ -144,6 +144,7 @@ export class ProductAIModel {
     }
 
     // At this point we just have function calls to process
+    // keeps only the last user function call message
     const inputFunctionCalls = messages.slice(messages.length - 1, messages.length)
     inputFunctionCalls.push(...agentResponse.output)
     console.log('----- function calls -----')
@@ -172,7 +173,6 @@ export class ProductAIModel {
     inputFunctionCalls.push(...orderedItems.filter(Boolean))
 
     /* keeping original function calling output order */
-    /* input.push(...orderedItems.filter(Boolean)) */
     console.log('----- function call outputs -----')
     console.log(inputFunctionCalls)
     console.log('---- end function call outputs ----')

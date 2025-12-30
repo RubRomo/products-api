@@ -1,26 +1,17 @@
-import mysql from 'mysql2/promise'
 import dotenv from 'dotenv'
+import { mysqlConnection } from '../db/mysql.js'
 dotenv.config()
 
-// Create the connection to database
-const connection = await mysql.createConnection({
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'productsapi',
-  port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306,
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || ''
-})
-
-export class ProductModel {
+export class ProductModelMySQL {
   static async getProducts () {
-    const [result] = await connection.query(
+    const [result] = await mysqlConnection.query(
       'SELECT * FROM products'
     )
     return result
   }
 
   static async getProductById ({ id }) {
-    const [result] = await connection.query(
+    const [result] = await mysqlConnection.query(
       'SELECT * FROM products WHERE id = ?', [id]
     )
     return result
@@ -28,7 +19,7 @@ export class ProductModel {
 
   static async updateProduct ({ id, input }) {
     // Desctructuring for pulling only rows
-    const [resultById] = await connection.query(
+    const [resultById] = await mysqlConnection.query(
       'SELECT * FROM products WHERE id = ?', [id]
     )
 
@@ -36,7 +27,7 @@ export class ProductModel {
       return 'ID doesnt exist'
     }
 
-    const [resultByName] = await connection.query(
+    const [resultByName] = await mysqlConnection.query(
       'SELECT * FROM products WHERE name = ?', [input.name]
     )
 
@@ -44,7 +35,7 @@ export class ProductModel {
       return 'Product name already exists'
     }
 
-    await connection.query(
+    await mysqlConnection.query(
       `UPDATE products
       SET name = ?
       , price = ?
@@ -58,7 +49,7 @@ export class ProductModel {
   }
 
   static async createProduct ({ input }) {
-    const [productResult] = await connection.query(
+    const [productResult] = await mysqlConnection.query(
       'SELECT * FROM products WHERE name = ?', [input.name]
     )
 
@@ -66,7 +57,7 @@ export class ProductModel {
       return 'Product name already exists'
     }
 
-    const [productInsert] = await connection.query(
+    const [productInsert] = await mysqlConnection.query(
       'INSERT INTO products (name, price, stock, active) VALUES (?,?,?,?)',
       [input.name, input.price, input.stock, input.active]
     )
@@ -75,13 +66,13 @@ export class ProductModel {
   }
 
   static async deleteProduct ({ id }) {
-    const [productResult] = await connection.query(
+    const [productResult] = await mysqlConnection.query(
       'SELECT * FROM products WHERE id = ?', [id]
     )
     if (productResult.length === 0) {
       return false
     }
-    await connection.query(
+    await mysqlConnection.query(
       'DELETE FROM products WHERE id = ?', [id]
     )
     return true
