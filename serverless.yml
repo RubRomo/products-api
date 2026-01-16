@@ -2,17 +2,14 @@ service: products-api
 
 provider:
   name: aws
-  runtime: nodejs20.x
+  runtime: nodejs18.x
   region: us-east-1
   stage: prod
   environment:
     NODE_ENV: production
-    DB_HOST: ${ssm:/products-api/prod/DB_HOST}
-    DB_PORT: ${ssm:/products-api/prod/DB_PORT}
-    DB_NAME: ${ssm:/products-api/prod/DB_NAME}
-    DB_USER: ${ssm:/products-api/prod/DB_USER}
+    DB_ENGINE: 'postgres'
     OPENAI_API_KEY: ''
-    DB_PASSWORD: ''
+    POSTGRES_DATABASE_URL: ''
 
 functions:
   app:
