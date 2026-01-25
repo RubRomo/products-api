@@ -1,5 +1,6 @@
 import express, { json } from 'express'
 import { productRouter } from './routes/product-routes.js'
+import { EmailRouter } from './routes/email-routes.js'
 import cors from 'cors'
 import { parseLambdaBody } from './middlewares/parse-lambdabody.js'
 
@@ -14,5 +15,6 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 app.use('/products', productRouter)
+app.use('/email', EmailRouter)
 
 export default app
